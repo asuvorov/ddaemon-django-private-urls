@@ -16,7 +16,7 @@ Low Level API provides a full Control and allows:
 
 - saving an additional Data in JSON Format;
 
-- processing the succeeded or failed Hits, using Django Signals, and controlling the Server Responses;
+- processing the succeeded or failed Hits, using Django Signals, and controlling the Server Responses.
 
 ## Installation
 
@@ -63,7 +63,7 @@ where:
 * `user` - is an User Instance, that you can use during the Request processing;
 * `data` - is an additional JSON Data;
 * `hits_limit` - is a Limit of the Private URL Hits (`0` for unlimited Hits);
-* `expire` - is an Expiration Date of the Private URL. It can be set as`datetime` or `timedelta` Object;
+* `expire` - is an Expiration Date of the Private URL. It can be set as`datetime` or `timedelta` Object (`None` to disable the Time Limit);
 * `auto_delete` - `True` to automatically remove the Private URL, when it is not available;
 * `token_size` - is a Length of a generated Token (`None` to default to the Value from `settings.PRIVATEURL_DEFAULT_TOKEN_SIZE`);
 * `replace` -  `True` to remove the previously existing Private URL for the Action/User Combination, before creating a new one.
@@ -81,9 +81,12 @@ user.send_email(
     body=f"Follow the Link to confirm your Registration: {purl.get_absolute_url()}")
 ```
 
-For catching Private URL Request you have to create a Receiver for the `privateurl_ok` and/or `privateurl_fail` Signal(s):
+For catching the Private URL Request you have to create a Receiver for the `privateurl_ok` and/or `privateurl_fail` Signal(s):
+
+- in your Application's `receivers.py` File
 
 ```python
+"""./src/someapp/receivers.py"""
 from django.dispatch import receiver
 
 from privateurl.models import PrivateUrl
@@ -104,20 +107,44 @@ def registration_confirm_fail(sender, request, obj, action, **kwargs):
     if action != "registration-confirmation":
         return
     if obj:
-        # Private URL has expired or has exceeded `hits_limit`.
+        # Private URL has expired, or has exceeded `hits_limit`.
         pass
     else:
-        # Private URL doesn't exists, or Token is not correct.
+        # Private URL doesn't exist, or Token is not valid.
         pass
 ```
 
-After processing `privateurl_ok` signal will be redirected to root page `/`.
-
-After processing `privateurl_fail` signal will be raised `Http404` exception.
-
-If you want change this logic you can return `dict` with key `response` in receiver:
+- and in your Application's `apps.py` File
 
 ```python
+"""./src/someapp/apps.py"""
+from importlib import import_module
+
+from django.apps import AppConfig
+
+
+class SomeAppConfig(AppConfig):
+
+    name = "someapp"
+
+    def ready(self):
+        import_module("someapp.receivers")
+        ...
+
+```
+
+---
+
+After processing the `privateurl_ok` Signal, the User will be redirected to the Home Page `/`.
+
+After processing the `privateurl_fail` Signal, the `Http404` Exception will be raised.
+
+
+
+If you want to change this Logic you can return from the Receiver the `dict` Object, with the `response` Key, containing `HTTPResponse` Object:
+
+```python
+"""./src/someapp/receivers.py"""
 from django.shortcuts import (
     redirect,
     render)
@@ -150,5 +177,5 @@ def registration_confirm_fail(sender, request, obj, action, **kwargs):
 
 # Settings
 
-`PRIVATEURL_URL_NAMESPACE` - namespace that you setted in `urls.py`. By default it is `privateurl`.
-`PRIVATEURL_DEFAULT_TOKEN_SIZE` - default size of token that will be generated using `create` or `generate_token` methods. By default it is `(8, 64)`.
+`PRIVATEURL_URL_NAMESPACE` - Namespace, set in `urls.py`. The default Value is `privateurl`.
+`PRIVATEURL_DEFAULT_TOKEN_SIZE` - Size of the Token, that will be generated using `create()` or `generate_token()` Methods. The default Value is `16`.
