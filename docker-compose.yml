@@ -1,0 +1,43 @@
+services:
+  db:
+    image:    mysql:8.0
+    restart:  always
+    volumes:
+      - mysql-db:/var/lib/mysql
+      - ./docker_config/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    environment:
+      MYSQL_DATABASE:       toremember
+      MYSQL_ROOT_PASSWORD:  root
+    ports:
+      - 3307:3306
+    expose:
+      - 3307:3306
+    healthcheck:
+        test:     ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+        timeout:  10s
+        retries:  10
+
+  privateurl:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    # command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - db
+    env_file:
+      - ./docker_config/docker-compose/dev.env
+    volumes:
+      - ./privateurl:/app/privateurl
+    ports:
+      - "8000:8000"
+    working_dir: /app/privateurl
+    # healthcheck:
+    #   test:         ["CMD", "/curl", "127.0.0.1:8000/api/status"]
+    #   interval:     30s
+    #   timeout:      2s
+    #   retries:      3
+    #   start_period: 1s
+
+volumes:
+  mysql-db:
+    driver: local
