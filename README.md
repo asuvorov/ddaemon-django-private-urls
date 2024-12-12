@@ -2,44 +2,33 @@
 
 ## Project Description
 
-The Application helps easy and flexibly implement different Features, that require a Use of Private URL for Users, like Registration Confirmation, Password Recovery, Access to paid Content, and so on.
+The Application helps to easy and flexibly implement the different Features, that require a Use of a Private URL for Users, like Registration Confirmation, Password Recovery, Access to a paid Content, and so on.
 
 Low Level API provides a full Control and allows:
 
-- limiting private url by time and hits
+- limiting a Usage of the Private URL by Time and Hits;
 
-- auto removing urls that won't be used
+- automatic removing Private URLs, that cannot be used anymore;
 
-- knowing number of hits, date of first and last hit for each url
+- knowing a Number of Hits, Dates of first and last Hit for each Private URL;
 
-- controlling token generator
+- controlling the Token Generator;
 
-- saving additional data in JSON format and using it at url hits
+- saving an additional Data in JSON Format;
 
-- processing succeeded or failed hits using django signals and controlling server responses
+- processing the succeeded or failed Hits, using Django Signals, and controlling the Server Responses;
 
 ## Installation
 
-**Requirements:**
+1. Install `ddaemon-django-private-url` via `pip`: `pip install ddaemon-django-private-url`;
 
-* Django v1.8+
-1. Install `django-privateurl`.
-* Via pip::
-  
-  $ pip install django-privateurl
-
-* Via setuptools::
-  
-  $ easy_install django-privateurl
-  
-  For install development version use `git+https://github.com/liminspace/django-privateurl.git@master`
-  instead `django-privateurl`.
-2. Set up `settings.py` in your django project:
+2. Set up `settings.py` in your Django Project:
    
    ```python
    INSTALLED_APPS = (
        ...,
        "privateurl",
+       ...
    )
    ```
 
@@ -48,7 +37,8 @@ Low Level API provides a full Control and allows:
    ```python
    urlpatterns = [
        ...
-       url(r'^private/', include('privateurl.urls', namespace='privateurl')),
+       url(r"^private/", include("privateurl.urls", namespace="privateurl")),
+       ...
    ]
    ```
 
@@ -60,7 +50,7 @@ Low Level API provides a full Control and allows:
 
 ## Usage
 
-First you need to create `PrivateUrl`, using the `create` Class Method::
+First you need to create a `PrivateUrl` Object, using the `create()` Class Method:
 
 ```python
 PrivateUrl.create(
@@ -69,25 +59,26 @@ PrivateUrl.create(
 
 where:
 
-* `action` - is a slug that using in url and allow distinguish one url of another
-* `user` - is user instance that you can get in request process
-* `expire` - is expiration date for private url. You can set `datetime` or `timedelta`
-* `data` - is additional data that will be saved as JSON. Setting a dict object is good idea
-* `hits_limit` - is limit of requests. Set 0 for unlimit
-* `auto_delete` - set `True` if you want remove private url object when it will be not available
-* `token_size` - set length of token. You can set number of size or tuple with min and max size. Keep `None` for using value from `settings.PRIVATEURL_DEFAULT_TOKEN_SIZE`
-* `replace` - set `True` if you want remove old exists private url for user and action before creating one
-* `dashed_piece_size` - split token with dash every N symbols. Keep `None` for using value from `settings.PRIVATEURL_DEFAULT_TOKEN_DASHED_PIECE_SIZE`
+* `action` - is a Slug, used in Private URL;
+* `user` - is an User Instance, that you can use during the Request processing;
+* `data` - is an additional JSON Data;
+* `hits_limit` - is a Limit of the Private URL Hits (`0` for unlimited Hits);
+* `expire` - is an Expiration Date of the Private URL. It can be set as`datetime` or `timedelta` Object;
+* `auto_delete` - `True` to automatically remove the Private URL, when it is not available;
+* `token_size` - is a Length of a generated Token (`None` to default to the Value from `settings.PRIVATEURL_DEFAULT_TOKEN_SIZE`);
+* `replace` -  `True` to remove the previously existing Private URL for the Action/User Combination, before creating a new one.
+
+
 
 For Example:
 
 ```python
 from privateurl.models import PrivateUrl
 
-purl = PrivateUrl.create("registration-confirmation", user=user)
+purl = PrivateUrl.create(action="registration-confirmation", user=user)
 user.send_email(
-    subject="Registration confirmation",
-    body=f"Follow the link for confirm your registration: {purl.get_absolute_url()}")
+    subject="Registration Confirmation",
+    body=f"Follow the Link to confirm your Registration: {purl.get_absolute_url()}")
 ```
 
 For catching Private URL Request you have to create a Receiver for the `privateurl_ok` and/or `privateurl_fail` Signal(s):

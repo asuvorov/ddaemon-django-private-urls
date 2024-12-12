@@ -10,7 +10,7 @@ from django.http.response import (
     Http404,
     HttpResponseRedirect)
 
-from app.decorators import log_default
+from ddcore.Decorators import log_default
 
 from privateurl.models import PrivateUrl
 from privateurl.signals import (
@@ -44,9 +44,9 @@ def privateurl_view(request, action, token):
         obj.hit_counter_inc()
         ok = True
 
-    cprint(f"    [--- INFO ---] RESULTS  : {results}\n"
-           f"                   OBJ      : {obj}\n"
-           f"                   OK       : {ok}", "cyan")
+    # cprint(f"    [--- INFO ---] RESULTS  : {results}\n"
+    #        f"                   OBJ      : {obj}\n"
+    #        f"                   OK       : {ok}", "cyan")
 
     for receiver, result in results:
         if isinstance(result, dict):
