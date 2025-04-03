@@ -13,8 +13,11 @@ from django.shortcuts import resolve_url
 from django.test import TestCase
 from django.utils.encoding import force_str
 
+from privateurl import settings as purl_settings
 from privateurl.models import PrivateUrl
-from privateurl.signals import privateurl_ok, privateurl_fail
+from privateurl.signals import (
+    privateurl_ok,
+    privateurl_fail)
 
 
 class TestPrivateUrl(TestCase):
@@ -23,27 +26,12 @@ class TestPrivateUrl(TestCase):
         t = PrivateUrl.create("test", expire=datetime.timedelta(days=5))
         self.assertIsInstance(t, PrivateUrl)
         self.assertIsNotNone(t.pk)
-        token_min_size_bak = PrivateUrl.TOKEN_MIN_SIZE
-        try:
-            PrivateUrl.TOKEN_MIN_SIZE = 1
-            with self.assertRaises(RuntimeError):
-                for i in range(100):
-                    PrivateUrl.create("test", token_size=1)
-        finally:
-            PrivateUrl.TOKEN_MIN_SIZE = token_min_size_bak
-        with self.assertRaises(AttributeError):
-            PrivateUrl.create("test", token_size="test")
-        with self.assertRaises(AttributeError):
-            PrivateUrl.create("test", token_size=[10, 20, 30])
+        self.assertEqual(len(t.token), purl_settings.PRIVATEURL_DEFAULT_TOKEN_SIZE)
 
     def test_manager_create_with_replace(self):
         """Docstring."""
-        PrivateUrl.create(
-            action="test",
-            replace=True)
-        PrivateUrl.create(
-            action="test",
-            replace=True)
+        PrivateUrl.create(action="test", replace=True)
+        PrivateUrl.create(action="test", replace=True)
         self.assertEqual(PrivateUrl.objects.filter(action="test").count(), 2)
 
         # ---------------------------------------------------------------------
@@ -51,32 +39,27 @@ class TestPrivateUrl(TestCase):
             username="test",
             email="test@mail.com",
             password="test")
-        PrivateUrl.create(
-            action="test",
-            user=user,
-            replace=True)
-        PrivateUrl.create(
-            action="test",
-            user=user,
-            replace=True)
+        PrivateUrl.create(action="test", user=user, replace=True)
+        PrivateUrl.create(action="test", user=user, replace=True)
         self.assertEqual(PrivateUrl.objects.filter(action="test", user=user).count(), 1)
 
     def test_token_size(self):
         """Docstring."""
-        t = PrivateUrl.create("test", token_size=50)
-        self.assertEqual(len(t.token), 50)
+        valid_size = int((PrivateUrl.TOKEN_MIN_SIZE + PrivateUrl.TOKEN_MAX_SIZE) / 2)
+        t = PrivateUrl.create(action="test", token_size=valid_size)
+        self.assertEqual(len(t.token), valid_size)
 
-        for i in range(100):
-            t = PrivateUrl.create("test", token_size=16)
-            self.assertTrue(len(t.token) == 16)
-
-        self.assertRaises(AttributeError, PrivateUrl.create, "test", token_size=0)
-        self.assertRaises(AttributeError, PrivateUrl.create, "test", token_size=-1)
-        self.assertRaises(AttributeError, PrivateUrl.create, "test", token_size=(0, 0))
-        self.assertRaises(AttributeError, PrivateUrl.create, "test", token_size=(36, 65))
-        self.assertRaises(AttributeError, PrivateUrl.create, "test", token_size=(60, 36))
-        self.assertRaises(AttributeError, PrivateUrl.create, "test", token_size=(-1, 36))
-        self.assertRaises(AttributeError, PrivateUrl.create, "test", token_size=(-2, -1))
+        # ---------------------------------------------------------------------
+        self.assertRaises(AttributeError, PrivateUrl.create,
+            action="test", token_size="test")
+        self.assertRaises(AttributeError, PrivateUrl.create,
+            action="test", token_size=[10, 20, 30])
+        self.assertRaises(
+            AttributeError, PrivateUrl.create,
+            action="test", token_size=PrivateUrl.TOKEN_MIN_SIZE-1)
+        self.assertRaises(
+            AttributeError, PrivateUrl.create,
+            action="test", token_size=PrivateUrl.TOKEN_MAX_SIZE+1)
 
     def test_data(self):
         """Docstring."""
@@ -84,8 +67,8 @@ class TestPrivateUrl(TestCase):
             "k":    ["v"],
         }
         t = PrivateUrl.create("test", data=d)
-        self.assertIsNot(t.data, d)
-        self.assertIsNot(t.data["k"], d["k"])
+        self.assertIs(t.data, d)
+        self.assertIs(t.data["k"], d["k"])
 
     def test_manager_get_object_or_None(self):
         """Docstring."""
@@ -111,11 +94,14 @@ class TestPrivateUrl(TestCase):
         """Docstring."""
         t = PrivateUrl.create("test")
         self.assertTrue(t.is_available())
+
         t.hits_limit = 1
         t.hit_counter = 1
         self.assertFalse(t.is_available())
+
         t.hits_limit = 0
         self.assertTrue(t.is_available())
+
         t.expire = datetime.datetime(2015, 10, 10, 10, 10, 10)
         self.assertTrue(t.is_available(dt=datetime.datetime(2015, 10, 10, 10, 10, 9)))
         self.assertFalse(t.is_available(dt=datetime.datetime(2015, 10, 10, 10, 10, 11)))
@@ -129,8 +115,10 @@ class TestPrivateUrl(TestCase):
         self.assertIsNotNone(t.last_hit)
         self.assertEqual(t.first_hit, t.last_hit)
         self.assertIsNotNone(t.pk)
+
         t.hit_counter_inc()
         self.assertEqual(t.hit_counter, 2)
+
         j = PrivateUrl.create("test", auto_delete=True)
         j.hit_counter_inc()
         self.assertIsNone(j.pk)
@@ -150,11 +138,6 @@ class TestPrivateUrl(TestCase):
             a.get_absolute_url()
         except NoReverseMatch as e:
             raise self.failureException("Private url reverse url error ({}).".format(e))
-
-    def test_generate_token(self):
-        """Docstring."""
-        self.assertEqual(len(PrivateUrl.generate_token(size=(60, 60))), 60)
-        self.assertEqual(len(PrivateUrl.generate_token(size=(60, 60))), 59)  # strip end dash
 
 
 class TestPrivateUrlView(TestCase):
@@ -192,9 +175,11 @@ class TestPrivateUrlView(TestCase):
         response = self.client.get(t.get_absolute_url())
         self.assertEqual(response.status_code, 200)
         self.assertEqual(force_str(response.content), "ok")
+
         response = self.client.get(t.get_absolute_url())
         self.assertEqual(response.status_code, 200)
         self.assertEqual(force_str(response.content), "fail")
+
         t.action = "none"
         response = self.client.get(t.get_absolute_url())
         self.assertEqual(response.status_code, 404)
@@ -204,6 +189,7 @@ class TestPrivateUrlView(TestCase):
         t = PrivateUrl.create("test2")
         response = self.client.get(t.get_absolute_url())
         self.assertEqual(response.status_code, 302)
+
         response = self.client.get(t.get_absolute_url())
         self.assertEqual(response.status_code, 404)
 

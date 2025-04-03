@@ -23,7 +23,7 @@ Low Level API provides a full Control and allows:
 1. Install `ddaemon-django-private-url` via `pip`: `pip install ddaemon-django-private-url`;
 
 2. Set up `settings.py` in your Django Project:
-   
+
    ```python
    INSTALLED_APPS = (
        ...,
@@ -33,7 +33,7 @@ Low Level API provides a full Control and allows:
    ```
 
 3. Add `url` Pattern in `urls.py`:
-   
+
    ```python
    urlpatterns = [
        ...
@@ -43,7 +43,7 @@ Low Level API provides a full Control and allows:
    ```
 
 4. Run Migrations:
-   
+
    ```bash
    [~]$ python manage.py migrate
    ```
@@ -179,3 +179,5 @@ def registration_confirm_fail(sender, request, obj, action, **kwargs):
 
 `PRIVATEURL_URL_NAMESPACE` - Namespace, set in `urls.py`. The default Value is `privateurl`.
 `PRIVATEURL_DEFAULT_TOKEN_SIZE` - Size of the Token, that will be generated using `create()` or `generate_token()` Methods. The default Value is `16`.
+
+Maintained by [Artem Suvorov @asuvorov](https://www.github.com/asuvorov/)

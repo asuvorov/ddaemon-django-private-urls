@@ -185,7 +185,6 @@ CACHES = {
         # "LOCATION": "127.0.0.1:11211",
         "LOCATION": "unix:/tmp/memcached.sock",
         "OPTIONS": {
-            "MAX_ENTRIES":      1000,
             "no_delay":         True,
             "ignore_exc":       True,
             "max_pool_size":    4,
@@ -199,7 +198,6 @@ CACHES = {
         "LOCATION": "redis://127.0.0.1:6379",
         # "LOCATION": "redis://username:password@127.0.0.1:6379",
         "OPTIONS": {
-            "MAX_ENTRIES":  1000,
             "db":           "10",
             "parser_class": "redis.connection.PythonParser",
             "pool_class":   "redis.BlockingConnectionPool",

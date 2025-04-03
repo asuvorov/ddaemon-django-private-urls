@@ -239,6 +239,13 @@ class PrivateUrl(BaseModel):
         if not isinstance(token_size, int):
             raise AttributeError("Attribute `token_size` must be `int`.")
 
+        if (
+                token_size < cls.TOKEN_MIN_SIZE or
+                token_size > cls.TOKEN_MAX_SIZE):
+            raise AttributeError(
+                f"Attribute `token_size` Value must be between {cls.TOKEN_MIN_SIZE} and "
+                f"{cls.TOKEN_MAX_SIZE}.")
+
         return get_random_string(length=token_size)
 
     def get_absolute_url(self):
